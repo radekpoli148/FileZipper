@@ -3,6 +3,7 @@ package filezipper;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.ArrayList;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 
@@ -11,7 +12,7 @@ public class FileZipper extends JFrame {
     public FileZipper()
     {
         this.setTitle("Zipper");
-        this.setBounds(250, 300, 250, 250);
+        this.setBounds(250, 300, 600, 250);
         this.setJMenuBar(pasekMenu);
         
         JMenu menuPlik = pasekMenu.add(new JMenu("Plik"));
@@ -28,6 +29,8 @@ public class FileZipper extends JFrame {
         bUsun = new JButton(akcjaUsuwania);
         bZip = new JButton(akcjaZipowania);
         
+        JScrollPane scroll = new JScrollPane(lista);
+        
         lista.setBorder(BorderFactory.createEtchedBorder());
         
         GroupLayout layout = new GroupLayout(this.getContentPane());
@@ -37,7 +40,7 @@ public class FileZipper extends JFrame {
         
         layout.setHorizontalGroup(
                 layout.createSequentialGroup()
-                .addComponent(lista, 100, 150, Short.MAX_VALUE)
+                .addComponent(scroll, 100, 150, Short.MAX_VALUE)
                 .addContainerGap(0, Short.MAX_VALUE)
                 .addGroup(
                 layout.createParallelGroup()
@@ -48,7 +51,7 @@ public class FileZipper extends JFrame {
         );
         layout.setVerticalGroup(
                 layout.createParallelGroup()
-                .addComponent(lista, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(scroll, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(
                 layout.createSequentialGroup()
                         .addComponent(bDodaj)
@@ -62,15 +65,39 @@ public class FileZipper extends JFrame {
         
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        this.pack();
+        //this.pack();
     }
     
-    private JList lista = new JList();
+    private DefaultListModel modelListy = new DefaultListModel()
+    {
+        @Override
+        public void addElement(Object obj)
+        {
+            lista.add(obj);
+            super.addElement(((File)obj).getName());
+        }
+        
+        @Override
+        public Object get(int index) 
+        {
+            return lista.get(index);
+        }
+        
+        @Override
+        public Object remove(int index) 
+        {
+            lista.remove(index);
+            return super.remove(index);
+        }
+
+        ArrayList lista = new ArrayList();
+    };
+    private JList lista = new JList(modelListy);
     private JButton bDodaj;
     private JButton bUsun;
     private JButton bZip;
     private JMenuBar pasekMenu = new JMenuBar();
-    
+    private JFileChooser wybieracz = new JFileChooser();
     
     public static void main(String[] args) 
     {
@@ -94,12 +121,45 @@ public class FileZipper extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             if(e.getActionCommand().equals("Dodaj"))
-                System.out.println("Dodawanie");
+                dodajWpisDoArchiwum();
             else if(e.getActionCommand().equals("Usun"))
-                System.out.println("Usuwanie");
+                usuwanieWpisuZArchiwum();
             else if(e.getActionCommand().equals("Zip"))
                 System.out.println("Zipowanie");
         }
         
+        private void dodajWpisDoArchiwum()
+        {
+            wybieracz.setCurrentDirectory(new File(System.getProperty("user.dir")));
+            wybieracz.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+            wybieracz.setMultiSelectionEnabled(true);
+            int tmp = wybieracz.showDialog(rootPane, "Dodaj do archiwum");
+            
+            if(tmp == JFileChooser.APPROVE_OPTION)
+            {
+                File[] sciezki = wybieracz.getSelectedFiles();
+                
+                for(int i = 0; i < sciezki.length; i++)
+                    if(!czyWpisSiePowtarza(sciezki[i].getPath()))
+                        modelListy.addElement(sciezki[i]);
+            }
+        }
+        
+        private boolean czyWpisSiePowtarza(String testowany)
+        {
+            for(int i = 0; i<modelListy.getSize(); i++)
+                if( ((File)modelListy.get(i)).getPath().equals(testowany))
+                    return true;
+            
+            return false;
+        }
+        
+        private void usuwanieWpisuZArchiwum()
+        {
+            int tmp[] = lista.getSelectedIndices();
+            
+            for(int i = 0; i<tmp.length; i++)
+                modelListy.remove(tmp[i]-i);
+        }
     }
 }
